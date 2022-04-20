@@ -32,8 +32,8 @@ def lettres(lang, letterCount, minVowels, minConsonants):
 
     hand = []
 
-    # random.seed(a=datetime.utcnow().strftime("%Y%m%d"), version=2)
-    random.seed(a=datetime.utcnow().strftime("%Y%m%d%H%M%s"), version=2)
+    random.seed(a=datetime.utcnow().strftime("%Y%m%d"), version=2)
+    # random.seed(a=datetime.utcnow().strftime("%Y%m%d%H%M%s"), version=2)
     for i in range(0, minVowels):
         vowel = vowelsBag[random.randrange(0, len(vowelsBag))]
         hand.append(vowel)
