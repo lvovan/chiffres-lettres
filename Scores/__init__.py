@@ -20,6 +20,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     bodyJson = req.get_json()
     name = bodyJson.get("nom")
     group = bodyJson.get("groupe")
+    days = bodyJson.get("days")
 
     ngValidation = validators.areNameGroupValid(name, group)
     if ngValidation != None:
@@ -29,9 +30,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     blobConnString = os.environ['AzureWebJobsStorage']
     container_client = ContainerClient.from_connection_string(conn_str=blobConnString, container_name=containerName)
     scoreBlobs = []
-    historyDays = 6
     try:
-        for i in range(0, historyDays):
+        for i in range(0, days):
             strDate = (datetime.now() - timedelta(i)).strftime("%Y%m%d")
             prefix = f"{strDate}.{group}."
             blobs = container_client.list_blobs(prefix)
@@ -41,7 +41,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         None
 
     if len(scoreBlobs) == 0:
-        return func.HttpResponse(f"No scores available for group {group} in the last {historyDays} days.")
+        return func.HttpResponse(f"No scores available for group {group} in the last {days} days.")
 
     scores = []
     todayScores = []
@@ -50,7 +50,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         scores.append(score)
         if blob.name.startswith(datetime.now().strftime("%Y%m%d")):
             todayScores.append(score)
-    
+
+    # Today's scores
     todayScoresSummary = []
     for s in todayScores:
         ps = {}
@@ -59,7 +60,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         ps["chiffres"] = s["chiffres"]["delta"]
         todayScoresSummary.append(ps)
 
+    summary = {}
+    for s in scores:
+        nom = s["joueur"]["nom"]
+        lettres = s["lettres"]["score"]
+        chiffres = s["chiffres"]["delta"]
+        if nom not in summary:
+            summary[nom] = {}
+            summary[nom]["lettres"] = lettres
+            summary[nom]["chiffres"] = chiffres
+            summary[nom]["parties"] = 1
+        else:
+            summary[nom]["lettres"] = summary[nom]["lettres"] + lettres
+            summary[nom]["chiffres"] = summary[nom]["chiffres"] + chiffres
+            summary[nom]["parties"] = summary[nom]["parties"] + 1
+        
+
     res = {}
     res["today"] = todayScoresSummary
+    res["history"] = summary
 
     return func.HttpResponse(json.dumps(res), mimetype="application/json")
