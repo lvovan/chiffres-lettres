@@ -1,6 +1,6 @@
 import logging
 from os import stat
-from shared_code import hand, scorer
+from shared_code import hand, scorer, validators
 import json
 import os
 import re
@@ -8,6 +8,8 @@ from datetime import datetime
 from azure.storage.blob import ContainerClient
 
 import azure.functions as func
+
+import shared_code
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     bodyJson = req.get_json()
@@ -17,11 +19,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     formula = bodyJson.get("formule")
     h = hand.hand()
 
-    # Check name and group validity
-    if not re.fullmatch("^[A-Za-z0-9\-]{1,32}$", name):
-        func.HttpResponse("'name' must be alphanumeric only, no spaces and up to 32 characters", status_code=422)
-    if not re.fullmatch("^[A-Za-z0-9\-]{0,32}$", group):
-        func.HttpResponse("'group' must be empty or alphanumeric only, no spaces and up to 32 characters", status_code=422)
+    ngValidation = validators.areNameGroupValid(name, group)
+    if ngValidation != None:
+        return func.HttpResponse(ngValidation, status_code=422)
 
     try:
         resLettres = scorer.scoreLettres(h, word)
