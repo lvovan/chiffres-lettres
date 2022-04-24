@@ -44,7 +44,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         container_client.create_container()
     except:
         None
-    strDate = datetime.now().strftime("%Y%m%d")
+    strDate = datetime.utcnow().strftime("%Y%m%d")
     container_client.upload_blob(f"{strDate}.{group}.{name}.json", resJson, overwrite=True)
 
     return func.HttpResponse(resJson, mimetype="application/json")

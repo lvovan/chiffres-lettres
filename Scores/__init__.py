@@ -20,7 +20,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     bodyJson = req.get_json()
     name = bodyJson.get("nom")
     group = bodyJson.get("groupe")
-    days = bodyJson.get("days")
+    days = bodyJson.get("jours")
 
     ngValidation = validators.areNameGroupValid(name, group)
     if ngValidation != None:
@@ -32,7 +32,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     scoreBlobs = []
     try:
         for i in range(0, days):
-            strDate = (datetime.now() - timedelta(i)).strftime("%Y%m%d")
+            strDate = (datetime.utcnow() - timedelta(i)).strftime("%Y%m%d")
             prefix = f"{strDate}.{group}."
             blobs = container_client.list_blobs(prefix)
             for blob in blobs:
@@ -48,7 +48,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     for blob in scoreBlobs:
         score = json.loads(container_client.download_blob(blob).content_as_text())
         scores.append(score)
-        if blob.name.startswith(datetime.now().strftime("%Y%m%d")):
+        if blob.name.startswith(datetime.utcnow().strftime("%Y%m%d")):
             todayScores.append(score)
 
     # Today's scores
@@ -60,21 +60,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         ps["chiffres"] = s["chiffres"]["delta"]
         todayScoresSummary.append(ps)
 
-    summary = {}
+    summaryTemp = {}
     for s in scores:
         nom = s["joueur"]["nom"]
         lettres = s["lettres"]["score"]
         chiffres = s["chiffres"]["delta"]
-        if nom not in summary:
-            summary[nom] = {}
-            summary[nom]["lettres"] = lettres
-            summary[nom]["chiffres"] = chiffres
-            summary[nom]["parties"] = 1
+        if nom not in summaryTemp:
+            summaryTemp[nom] = {}
+            summaryTemp[nom]["nom"] = nom
+            summaryTemp[nom]["lettres"] = lettres
+            summaryTemp[nom]["chiffres"] = chiffres
+            summaryTemp[nom]["parties"] = 1
         else:
-            summary[nom]["lettres"] = summary[nom]["lettres"] + lettres
-            summary[nom]["chiffres"] = summary[nom]["chiffres"] + chiffres
-            summary[nom]["parties"] = summary[nom]["parties"] + 1
-        
+            summaryTemp[nom]["lettres"] = summaryTemp[nom]["lettres"] + lettres
+            summaryTemp[nom]["chiffres"] = summaryTemp[nom]["chiffres"] + chiffres
+            summaryTemp[nom]["parties"] = summaryTemp[nom]["parties"] + 1
+    summary = []
+    for s in summaryTemp:
+        summary.append(summaryTemp[s])
 
     res = {}
     res["today"] = todayScoresSummary
