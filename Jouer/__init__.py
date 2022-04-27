@@ -17,14 +17,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     group = bodyJson.get("groupe")
     word = bodyJson.get("mot")
     formula = bodyJson.get("formule")
-    h = hand.hand()
+    h = hand.hand(group)
 
     ngValidation = validators.areNameGroupValid(name, group)
     if ngValidation != None:
         return func.HttpResponse(ngValidation, status_code=422)
 
     try:
-        resLettres = scorer.scoreLettres(h, word)
+        resLettres = scorer.scoreLettres("fr", h, word)
         resChiffres = scorer.scoreChiffres(h, formula)
     except Exception as e:
         return func.HttpResponse(str(e), status_code=400)

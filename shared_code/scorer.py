@@ -1,11 +1,12 @@
 # from shared_code import hand
 import pydawg
 import pathlib
+import json
 import re
 import copy
 from py_expression_eval import Parser
 
-def scoreLettres(hnd, word):
+def scoreLettres(lang, hnd, word):
     h = copy.deepcopy(hnd)
     word = word.upper()
     D = pydawg.DAWG()
@@ -13,12 +14,15 @@ def scoreLettres(hnd, word):
         D.binload(f.read())
 
     # Word has letters from the hand?
-    originalHand = str(h["lettres"])
-    lettersInHand = h["lettres"]
+    lettres = []
+    for c in h["lettres"]:
+        lettres.append(list(c.keys())[0])
+    originalHand = ''.join(lettres)
+    lettersInHand = lettres
     for letter in word:
         if letter not in lettersInHand:
             # return func.HttpResponse(f"Invalid move: {word} has letter {letter} not available in the hand {originalHand}.", status_code=400)
-            raise Exception(f"Invalid move: {word} has letter {letter} not available in the hand {originalHand}.")
+            raise Exception(f"Invalid move: {word} needs the letter '{letter}', which is not available in the hand {originalHand}.")
         lettersInHand.remove(letter)
 
     # Word in dictionary?
@@ -27,9 +31,16 @@ def scoreLettres(hnd, word):
         # return func.HttpResponse(f"Invalid move: {word} not recognized as a valid word in the dictionary.", status_code=400)
         raise Exception(f"Invalid move: {word} not recognized as a valid word in the dictionary.")
 
+    with open(str(pathlib.Path(__file__).parent) + "/" + lang + '.json') as f:
+        data = json.load(f)
+    points = data["TileSet"]["Points"]
+    wordScore = 0
+    for c in word:
+        wordScore = wordScore + points[c]
+
     res = {}
     res["word"] = word
-    res["score"] = len(word)
+    res["score"] = wordScore
     return res
 
 def scoreChiffres(hnd, formula):

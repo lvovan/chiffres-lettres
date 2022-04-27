@@ -18,6 +18,7 @@ def peek(iterable):
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     bodyJson = req.get_json()
+    
     name = bodyJson.get("nom")
     group = bodyJson.get("groupe")
     days = bodyJson.get("jours")
